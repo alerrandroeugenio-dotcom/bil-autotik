@@ -8,8 +8,8 @@
 <div class="row"><div><label for="price">Preço (opcional)</label><input maxlength="28" id="price" placeholder="R$ 199,90"></div><div><label for="call">Chamada</label><input maxlength="100" id="call" value="Confira essa oferta!"></div></div>
 <label for="photo">Foto do produto</label><input id="photo" type="file" accept="image/*">
 <div class="row"><button type="button" id="preview">Atualizar prévia</button><button type="button" id="generate">Gerar vídeo</button></div>
-<canvas id="cv" width="720" height="1280" aria-label="Prévia vertical do vídeo"></canvas><p id="status" class="status" role="status" aria-live="polite">Preencha o nome e o link de afiliado.</p><a id="dl" class="download" style="display:none" download="bil-autotik-video.webm">Baixar vídeo</a>
-<button type="button" id="copy" style="margin-top:16px">Copiar legenda e link</button><p class="small">Publicidade: sinalize seu conteúdo como divulgação de afiliado. Confira preço e disponibilidade antes de publicar.</p><p class="small">O vídeo é criado no navegador do celular. A exportação será MP4 ou WebM, conforme o suporte do navegador. O vídeo tem 8 segundos e não inclui áudio. O link aparece no encerramento do vídeo, mas pode não ser clicável dentro do vídeo publicado.</p></section>
+<canvas id="cv" width="720" height="1280" aria-label="Prévia vertical do vídeo"></canvas><p id="status" class="status" role="status" aria-live="polite">Preencha o nome e o link de afiliado.</p><a id="dl" class="download" style="display:none" download="bil-autotik-video.mp4">Baixar vídeo</a>
+<button type="button" id="copy" style="margin-top:16px">Copiar legenda e link</button><p class="small">Publicidade: sinalize seu conteúdo como divulgação de afiliado. Confira preço e disponibilidade antes de publicar.</p><p class="small">O vídeo é criado no navegador do celular. A exportação é MP4 com vídeo H.264. É necessário um navegador com suporte à gravação nesse formato. O vídeo tem 8 segundos e não inclui áudio. O link aparece no encerramento do vídeo, mas pode não ser clicável dentro do vídeo publicado.</p></section>
 <script>
 const $=x=>document.getElementById(x),c=$('cv'),x=c.getContext('2d');let image=null;
 function valid(u){try{return ['https:','http:'].includes(new URL(u).protocol)}catch{return false}}
@@ -46,8 +46,8 @@ $('generate').onclick=()=>{
  if(!$('name').value.trim())return message('Digite o nome do produto.');
  if(!image)return message('Adicione uma foto do produto.');
  if(!window.MediaRecorder||!c.captureStream)return message('Seu navegador não suporta gravação. Tente no Chrome atualizado.');
- const mime=['video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
- if(!mime)return message('Nenhum formato de vídeo compatível. Tente no Chrome atualizado.');
+ const mime=['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1.42001E','video/mp4;codecs=avc1.4D401F','video/mp4;codecs=avc1.640028'].find(t=>MediaRecorder.isTypeSupported(t));
+ if(!mime)return message('Este navegador não oferece MP4 H.264 para gravação. Abra no Chrome atualizado e tente novamente.');
  let stream,rec,timer,timeout,chunks=[],failed=false,cleaned=false;
  const stopTracks=()=>{if(stream)stream.getTracks().forEach(t=>t.stop())};
  const cleanup=()=>{if(cleaned)return;cleaned=true;clearInterval(timer);clearTimeout(timeout);document.removeEventListener('visibilitychange',onHidden);stopTracks();lock(false);draw()};
@@ -77,3 +77,4 @@ $('generate').onclick=()=>{
  }catch{fail()}
 };draw();
 </script></main></body></html>
+
