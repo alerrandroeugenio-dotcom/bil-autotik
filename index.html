@@ -1,80 +1,653 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BIL AUTOTIK</title>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BIL AUTOTIK</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top right,#211044,#080817 55%);color:#f7f7ff;font-family:Arial,sans-serif}main{max-width:760px;margin:auto;padding:26px 18px 60px}h1{color:#32dbe7;font-size:34px}.pill{border:1px solid #42425a;border-radius:28px;padding:13px 22px;display:inline-block;color:#b9bbce;margin-bottom:25px}.lead{font-size:32px;font-weight:bold;line-height:1.15}.cyan{color:#31dce7}.muted{color:#b8bbce;line-height:1.5}.panel{border:1px solid #34344e;background:#0e1021;border-radius:24px;padding:20px;margin:18px 0}button{border:0;border-radius:16px;background:linear-gradient(100deg,#20d3df,#6ee9e9);color:#06121b;font-weight:bold;padding:16px;font-size:17px;width:100%;cursor:pointer}input{width:100%;padding:15px;border-radius:14px;border:1px solid #444862;background:#25314a;color:white;font-size:16px;margin:8px 0 12px}label{display:block;margin-top:10px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.status{color:#f7d7a5;overflow-wrap:anywhere}canvas{width:100%;height:auto;border-radius:14px;margin-top:12px}.download{display:inline-block;color:#40e0e7;margin-top:14px}.small{font-size:13px;color:#aeb2c8;line-height:1.45}@media(max-width:500px){.row{grid-template-columns:1fr}}
-</style></head><body><main><h1>BIL AUTOTIK</h1><div class="pill">CENTRAL DE PRODUTOS</div><div class="lead">Encontre produtos.<br><span class="cyan">Prepare seus vídeos.</span></div><p class="muted">Monte um vídeo vertical de divulgação para TikTok, Reels e Shorts.</p>
-<section class="panel"><h2>Gerador de vídeo de afiliado</h2><p class="muted">Cole o link que você já criou no programa de afiliados. Adicione a foto do produto e gere o vídeo.</p>
-<label for="affiliate">Seu link de afiliado</label><input id="affiliate" type="url" placeholder="https://...">
-<label for="name">Nome do produto</label><input maxlength="120" id="name" placeholder="Ex.: Barbeador Philips OneBlade">
-<div class="row"><div><label for="price">Preço (opcional)</label><input maxlength="28" id="price" placeholder="R$ 199,90"></div><div><label for="call">Chamada</label><input maxlength="100" id="call" value="Confira essa oferta!"></div></div>
-<label for="photo">Foto do produto</label><input id="photo" type="file" accept="image/*">
-<div class="row"><button type="button" id="preview">Atualizar prévia</button><button type="button" id="generate">Gerar vídeo</button></div>
-<canvas id="cv" width="720" height="1280" aria-label="Prévia vertical do vídeo"></canvas><p id="status" class="status" role="status" aria-live="polite">Preencha o nome e o link de afiliado.</p><a id="dl" class="download" style="display:none" download="bil-autotik-video.mp4">Baixar vídeo</a>
-<button type="button" id="copy" style="margin-top:16px">Copiar legenda e link</button><p class="small">Publicidade: sinalize seu conteúdo como divulgação de afiliado. Confira preço e disponibilidade antes de publicar.</p><p class="small">O vídeo é criado no navegador do celular. A exportação é MP4 com vídeo H.264. É necessário um navegador com suporte à gravação nesse formato. O vídeo tem 8 segundos e não inclui áudio. O link aparece no encerramento do vídeo, mas pode não ser clicável dentro do vídeo publicado.</p></section>
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top right,#211044,#080817 55%);color:#f7f7ff;font-family:Arial,sans-serif}
+main{max-width:760px;margin:auto;padding:26px 18px 60px}
+h1{color:#32dbe7;font-size:34px}
+h1,h2,a{overflow-wrap:anywhere}
+.pill{border:1px solid #42425a;border-radius:28px;padding:13px 22px;display:inline-block;color:#b9bbce;margin-bottom:25px}
+.lead{font-size:32px;font-weight:bold;line-height:1.15}
+.cyan{color:#31dce7}
+.muted{color:#b8bbce;line-height:1.5}
+.panel{border:1px solid #34344e;background:#0e1021;border-radius:24px;padding:20px;margin:18px 0}
+button{border:0;border-radius:16px;background:linear-gradient(100deg,#20d3df,#6ee9e9);color:#06121b;font-weight:bold;padding:16px;font-size:17px;width:100%;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+input,select,textarea{width:100%;padding:15px;border-radius:14px;border:1px solid #444862;background:#25314a;color:white;font:inherit;margin:8px 0 12px}
+textarea{min-height:110px;resize:vertical}
+label{display:block;margin-top:10px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.status{color:#f7d7a5;overflow-wrap:anywhere}
+canvas{width:100%;height:auto;border-radius:14px;margin-top:12px}
+.download{display:inline-block;color:#40e0e7;margin-top:14px}
+.small{font-size:13px;color:#aeb2c8;line-height:1.45}
+.buy{display:block;padding:18px;text-align:center;border-radius:16px;background:#32dce7;color:#06121b;text-decoration:none;font-weight:bold}
+.secondary{background:#26324b;color:#e9fafa;border:1px solid #51617a;margin-top:12px}
+.destination{overflow-wrap:anywhere;font-size:14px;color:#c6cce0}
+video{width:100%;max-height:500px;margin-top:14px;border-radius:14px}
+.offer-price{font-size:30px;color:#32dce7}
+.version{font-size:12px;color:#aeb2c8}
+[hidden]{display:none!important}
+@media(max-width:500px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+
+<section id="buyer" class="panel" hidden>
+  <p class="small">Publicidade • Link de afiliado</p>
+  <h1 id="offer-name"></h1>
+  <p id="offer-price" class="offer-price"></p>
+  <p id="offer-call" class="muted"></p>
+  <a id="buy" class="buy" rel="sponsored noopener noreferrer">Ver oferta na loja</a>
+  <p class="small">Você será direcionado à loja para conferir o produto e comprar. O divulgador pode receber comissão. Preço e disponibilidade podem mudar.</p>
+  <p class="small">Destino do botão:</p>
+  <p id="offer-destination" class="destination"></p>
+  <p class="small">Página compartilhada pelo divulgador. Confira o endereço da loja antes de comprar.</p>
+</section>
+
+<section id="bad-offer" class="panel" hidden>
+  <h1>Não foi possível abrir esta oferta</h1>
+  <p>Peça ao divulgador para gerar e enviar o link completo novamente.</p>
+</section>
+
+<div id="editor">
+  <h1>BIL AUTOTIK</h1>
+  <div class="pill">CENTRAL DE PRODUTOS</div>
+  <div class="lead">Prepare seu vídeo.<br><span class="cyan">Compartilhe sua oferta.</span></div>
+  <p class="muted">Monte um vídeo vertical de divulgação para TikTok, Reels e Shorts.</p>
+
+  <section class="panel">
+    <h2>Gerador de vídeo de afiliado</h2>
+    <p class="muted">Cole o link que você já criou no programa de afiliados. Adicione a foto do produto e gere o vídeo.</p>
+
+    <label for="affiliate">Seu link de afiliado</label>
+    <input id="affiliate" type="url" placeholder="https://...">
+
+    <label for="name">Nome do produto</label>
+    <input maxlength="120" id="name" placeholder="Ex.: Barbeador Philips OneBlade">
+
+    <div class="row">
+      <div>
+        <label for="price">Preço (opcional)</label>
+        <input maxlength="28" id="price" placeholder="R$ 199,90">
+      </div>
+      <div>
+        <label for="call">Chamada</label>
+        <input maxlength="100" id="call" value="Confira essa oferta!">
+      </div>
+    </div>
+
+    <label for="channel">Onde você vai divulgar?</label>
+    <select id="channel">
+      <option value="instagram">Instagram — link no perfil</option>
+      <option value="whatsapp">WhatsApp — link na mensagem</option>
+      <option value="tiktok">TikTok — somente se o perfil já tiver link clicável</option>
+    </select>
+    <p id="channel-help" class="small"></p>
+
+    <section class="panel">
+      <h2>Link público da oferta</h2>
+      <p class="small">Crie uma página com nome, preço e botão para sua loja. Ela abre em outro celular, sem entrar no Bil. A foto escolhida abaixo é usada no vídeo.</p>
+
+      <button type="button" id="offer-generate">Gerar link da oferta</button>
+
+      <div id="offer-result" hidden>
+        <label for="offer-url">Link para divulgar</label>
+        <textarea id="offer-url" readonly></textarea>
+        <a id="offer-open" class="download" target="_blank" rel="noopener">Abrir e testar oferta</a>
+        <button type="button" id="offer-copy" class="secondary">Copiar link da oferta</button>
+        <button type="button" id="offer-share" class="secondary">Compartilhar oferta</button>
+      </div>
+
+      <p id="offer-status" class="status" role="status" aria-live="polite"></p>
+    </section>
+
+    <label for="photo">Foto do produto</label>
+    <input id="photo" type="file" accept="image/*">
+
+    <div class="row">
+      <button type="button" id="preview">Atualizar prévia</button>
+      <button type="button" id="generate">Gerar vídeo</button>
+    </div>
+
+    <canvas id="cv" width="720" height="1280" aria-label="Prévia vertical do vídeo"></canvas>
+
+    <p id="status" class="status" role="status" aria-live="polite">Preencha o nome e o link de afiliado.</p>
+
+    <a id="dl" class="download" style="display:none" download="bil-autotik-video.mp4">Baixar vídeo</a>
+
+    <video id="video-result" controls playsinline hidden></video>
+    <button type="button" id="video-share" class="secondary" hidden>Compartilhar vídeo</button>
+
+    <button type="button" id="copy" style="margin-top:16px">Copiar legenda e link</button>
+
+    <p class="small">Publicidade: sinalize seu conteúdo como divulgação de afiliado. Confira preço e disponibilidade antes de publicar.</p>
+    <p class="small">O vídeo é criado no navegador do celular. A exportação é MP4 com vídeo H.264. É necessário um navegador com suporte à gravação nesse formato. O vídeo tem 8 segundos e não inclui áudio. Endereços dentro do vídeo são apenas texto. No Instagram, coloque o link da oferta ou da sua vitrine em Editar perfil → Links. A página da oferta não libera links no TikTok: seu perfil precisa ter esse recurso. No WhatsApp, envie o link junto com o vídeo.</p>
+  </section>
+
+  <section id="manual-copy-box" class="panel" hidden>
+    <label for="manual-copy">Texto para copiar</label>
+    <textarea id="manual-copy" readonly></textarea>
+  </section>
+
+  <p class="version">BIL AUTOTIK • versão 2.1 • Ofertas públicas</p>
+</div>
+
+</main>
+
 <script>
-const $=x=>document.getElementById(x),c=$('cv'),x=c.getContext('2d');let image=null;
-function valid(u){try{return ['https:','http:'].includes(new URL(u).protocol)}catch{return false}}
-function lines(t,max){let out=[],line='';for(let w of (t||'').split(/\s+/)){let n=line?line+' '+w:w;if(x.measureText(n).width>max&&line){out.push(line);line=w}else line=n}if(line)out.push(line);return out}
-function box(a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r)}
-function draw(){let g=x.createLinearGradient(0,0,720,1280);g.addColorStop(0,'#09101f');g.addColorStop(.55,'#211044');g.addColorStop(1,'#062b3a');x.fillStyle=g;x.fillRect(0,0,720,1280);x.fillStyle='#32dce7';x.font='bold 42px Arial';x.fillText('BIL AUTOTIK',48,80);x.fillStyle='white';x.font='bold 48px Arial';lines($('name').value||'Oferta especial',620).slice(0,3).forEach((t,i)=>x.fillText(t,48,155+i*58));
-if(image){let s=Math.min(560/image.width,570/image.height),w=image.width*s,h=image.height*s;x.fillStyle='white';box((720-w)/2-16,340,w+32,h+32,24);x.fill();x.drawImage(image,(720-w)/2,356,w,h)}else{x.fillStyle='#26324b';box(60,350,600,560,28);x.fill();x.fillStyle='#aeb7cf';x.font='30px Arial';x.fillText('Adicione a foto do produto',105,620)}
-x.fillStyle='#32dce7';x.font='bold 40px Arial';x.fillText(($('price').value||'OFERTA ESPECIAL').slice(0,28),48,1000);x.fillStyle='white';x.font='bold 34px Arial';lines($('call').value||'Confira essa oferta!',620).slice(0,2).forEach((t,i)=>x.fillText(t,48,1060+i*42));x.fillStyle='#d5d8e8';x.font='18px Arial';lines($('affiliate').value||'Cole seu link de afiliado',620).slice(0,3).forEach((t,i)=>x.fillText(t,48,1140+i*26));x.fillStyle='#32dce7';x.fillRect(48,1210,624,5)}
+const $ = id => document.getElementById(id);
+const c = $('cv');
+const x = c.getContext('2d');
+let image = null;
+let recording = false;
+let downloadUrl = null;
+let photoUrl = null;
+let videoBlob = null;
 
-let recording=false,downloadUrl=null,photoUrl=null;
-const fields=['affiliate','name','price','call','photo'];
-function lock(on){recording=on;fields.forEach(id=>$(id).disabled=on);$('generate').disabled=on;$('preview').disabled=on}
-function message(t){$('status').textContent=t}
-$('photo').onchange=e=>{
- const f=e.target.files[0];if(!f)return;
- if(!f.type.startsWith('image/')){message('Escolha uma imagem válida.');return}
- if(f.size>15*1024*1024){message('Escolha uma imagem de até 15 MB.');return}
- if(photoUrl)URL.revokeObjectURL(photoUrl);
- photoUrl=URL.createObjectURL(f);let im=new Image();
- im.onload=()=>{image=im;URL.revokeObjectURL(photoUrl);photoUrl=null;draw();message('Foto carregada. Você já pode gerar o vídeo.')};
- im.onerror=()=>{URL.revokeObjectURL(photoUrl);photoUrl=null;message('Não foi possível abrir a imagem. Tente JPG ou PNG.')};
- im.src=photoUrl;
-};
-fields.slice(0,4).forEach(id=>$(id).addEventListener('input',()=>{if(!recording)draw()}));
-$('preview').onclick=()=>{draw();message('Prévia atualizada.')};
-$('copy').onclick=async()=>{
- if(!valid($('affiliate').value.trim()))return message('Cole um link de afiliado válido antes de copiar.');
- const text=['Publicidade • Link de afiliado',$('name').value.trim(),$('price').value.trim(),$('call').value.trim(),$('affiliate').value.trim()].filter(Boolean).join('\n');
- try{await navigator.clipboard.writeText(text);message('Legenda e link copiados. Cole na publicação.')}catch{message('Cópia automática indisponível. Copie o link diretamente do campo acima.')}
-};
-$('generate').onclick=()=>{
- if(recording)return;
- if(!valid($('affiliate').value.trim()))return message('Cole um link válido começando com https://.');
- if(!$('name').value.trim())return message('Digite o nome do produto.');
- if(!image)return message('Adicione uma foto do produto.');
- if(!window.MediaRecorder||!c.captureStream)return message('Seu navegador não suporta gravação. Tente no Chrome atualizado.');
- const mime=['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1.42001E','video/mp4;codecs=avc1.4D401F','video/mp4;codecs=avc1.640028'].find(t=>MediaRecorder.isTypeSupported(t));
- if(!mime)return message('Este navegador não oferece MP4 H.264 para gravação. Abra no Chrome atualizado e tente novamente.');
- let stream,rec,timer,timeout,chunks=[],failed=false,cleaned=false;
- const stopTracks=()=>{if(stream)stream.getTracks().forEach(t=>t.stop())};
- const cleanup=()=>{if(cleaned)return;cleaned=true;clearInterval(timer);clearTimeout(timeout);document.removeEventListener('visibilitychange',onHidden);stopTracks();lock(false);draw()};
- const fail=()=>{if(failed)return;failed=true;if(rec&&rec.state!=='inactive')try{rec.stop()}catch{};cleanup();message('Gravação interrompida. Mantenha a página aberta e tente novamente.')};
- const onHidden=()=>{if(document.hidden)fail()};
- try{
-  draw();stream=c.captureStream(30);rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:3000000});
-  rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-  rec.onerror=fail;
-  rec.onstop=()=>{
-   cleanup();if(failed)return;
-   const blob=new Blob(chunks,{type:rec.mimeType||mime});
-   if(!blob.size)return message('O vídeo ficou vazio. Tente gerar novamente.');
-   if(downloadUrl)URL.revokeObjectURL(downloadUrl);
-   downloadUrl=URL.createObjectURL(blob);$('dl').href=downloadUrl;
-   $('dl').download='bil-autotik-video.'+(blob.type.includes('mp4')?'mp4':'webm');
-   $('dl').style.display='inline-block';message('Vídeo pronto! Toque em Baixar vídeo. Copie a legenda e o link para divulgar.');
+const fields = ['affiliate','name','price','call','photo','channel'];
+
+function valid(u) {
+  try {
+    const a = new URL(u);
+    return a.protocol === 'https:' &&
+      !a.username &&
+      !a.password &&
+      a.hostname.includes('.') &&
+      u.length <= 3000;
+  } catch {
+    return false;
+  }
+}
+
+function lines(t, max) {
+  let out = [];
+  let line = '';
+  for (let w of (t || '').split(/\s+/)) {
+    let n = line ? line + ' ' + w : w;
+    if (x.measureText(n).width > max && line) {
+      out.push(line);
+      line = w;
+    } else {
+      line = n;
+    }
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+function box(a,b,w,h,r) {
+  x.beginPath();
+  x.roundRect(a,b,w,h,r);
+}
+
+function draw() {
+  let g = x.createLinearGradient(0,0,720,1280);
+  g.addColorStop(0,'#09101f');
+  g.addColorStop(.55,'#211044');
+  g.addColorStop(1,'#062b3a');
+  x.fillStyle = g;
+  x.fillRect(0,0,720,1280);
+
+  x.fillStyle = '#32dce7';
+  x.font = 'bold 42px Arial';
+  x.fillText('BIL AUTOTIK',48,80);
+
+  x.fillStyle = 'white';
+  x.font = 'bold 48px Arial';
+  lines($('name').value || 'Oferta especial',620)
+    .slice(0,3)
+    .forEach((t,i) => x.fillText(t,48,155+i*58));
+
+  if (image) {
+    let s = Math.min(560/image.width,570/image.height);
+    let w = image.width*s;
+    let h = image.height*s;
+    x.fillStyle = 'white';
+    box((720-w)/2-16,340,w+32,h+32,24);
+    x.fill();
+    x.drawImage(image,(720-w)/2,356,w,h);
+  } else {
+    x.fillStyle = '#26324b';
+    box(60,350,600,560,28);
+    x.fill();
+    x.fillStyle = '#aeb7cf';
+    x.font = '30px Arial';
+    x.fillText('Adicione a foto do produto',105,620);
+  }
+
+  x.fillStyle = '#32dce7';
+  x.font = 'bold 40px Arial';
+  x.fillText(($('price').value || 'OFERTA ESPECIAL').slice(0,28),48,1000);
+
+  x.fillStyle = 'white';
+  x.font = 'bold 34px Arial';
+  lines($('call').value || 'Confira essa oferta!',620)
+    .slice(0,2)
+    .forEach((t,i) => x.fillText(t,48,1060+i*42));
+
+  x.fillStyle = '#d5d8e8';
+  x.font = '18px Arial';
+  const destination = $('channel').value === 'whatsapp'
+    ? 'Abra o link enviado com este vídeo'
+    : 'Confira no link do meu perfil';
+
+  lines(destination,620)
+    .slice(0,3)
+    .forEach((t,i) => x.fillText(t,48,1140+i*26));
+
+  x.fillStyle = '#32dce7';
+  x.fillRect(48,1210,624,5);
+}
+
+function lock(on) {
+  recording = on;
+  fields.forEach(id => $(id).disabled = on);
+  $('generate').disabled = on;
+  $('preview').disabled = on;
+}
+
+function message(t) {
+  $('status').textContent = t;
+}
+
+function offerMessage(t) {
+  $('offer-status').textContent = t;
+}
+
+$('photo').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+
+  if (!f.type.startsWith('image/')) {
+    message('Escolha uma imagem válida.');
+    return;
+  }
+
+  if (f.size > 15*1024*1024) {
+    message('Escolha uma imagem de até 15 MB.');
+    return;
+  }
+
+  if (photoUrl) URL.revokeObjectURL(photoUrl);
+  photoUrl = URL.createObjectURL(f);
+
+  let im = new Image();
+  im.onload = () => {
+    image = im;
+    URL.revokeObjectURL(photoUrl);
+    photoUrl = null;
+    draw();
+    message('Foto carregada. Você já pode gerar o vídeo.');
   };
-  lock(true);$('dl').style.display='none';message('Gerando vídeo de 8 segundos. Mantenha esta página aberta...');
-  document.addEventListener('visibilitychange',onHidden);
-  const began=performance.now();rec.start();
-  timer=setInterval(()=>{draw();const elapsed=(performance.now()-began)/1000;
-   x.fillStyle='#32dce7';x.fillRect(48,1210,624*Math.min(1,elapsed/8),5);
-   if(elapsed>=8&&rec.state==='recording'){clearInterval(timer);rec.stop()}
-  },1000/30);
-  timeout=setTimeout(()=>{if(recording)fail()},15000);
- }catch{fail()}
-};draw();
-</script></main></body></html>
 
+  im.onerror = () => {
+    URL.revokeObjectURL(photoUrl);
+    photoUrl = null;
+    message('Não foi possível abrir a imagem. Tente JPG ou PNG.');
+  };
+
+  im.src = photoUrl;
+};
+
+fields.slice(0,4).forEach(id => {
+  $(id).addEventListener('input', () => {
+    if (!recording) draw();
+  });
+});
+
+$('preview').onclick = () => {
+  draw();
+  message('Prévia atualizada.');
+};
+
+function affiliateData() {
+  const url = $('affiliate').value.trim();
+  const name = $('name').value.trim();
+
+  if (!valid(url)) {
+    throw Error('Cole um link de afiliado completo, começando com https://.');
+  }
+
+  if (!name) {
+    throw Error('Digite o nome do produto.');
+  }
+
+  return {
+    v: 1,
+    url,
+    name,
+    price: $('price').value.trim(),
+    call: $('call').value.trim()
+  };
+}
+
+function offerLink() {
+  return location.origin + location.pathname +
+    '#oferta=' + encodeURIComponent(JSON.stringify(affiliateData()));
+}
+
+async function copyText(t, feedback) {
+  try {
+    await navigator.clipboard.writeText(t);
+    feedback('Copiado.');
+  } catch {
+    $('manual-copy').value = t;
+    $('manual-copy-box').hidden = false;
+    $('manual-copy').focus();
+    $('manual-copy').select();
+    feedback('Toque e segure no texto selecionado e escolha Copiar.');
+  }
+}
+
+function channelHelp() {
+  $('channel-help').textContent =
+    $('channel').value === 'tiktok'
+      ? 'Atenção: o Bil não libera o campo de site do TikTok. Só use “link no perfil” se as pessoas já conseguem tocar nesse link.'
+      : $('channel').value === 'instagram'
+        ? 'Coloque sua vitrine ou a oferta em Editar perfil → Links. O vídeo orienta a pessoa a abrir seu perfil.'
+        : 'Envie o vídeo e o link da oferta na mesma conversa.';
+  draw();
+}
+
+$('channel').onchange = channelHelp;
+
+$('offer-generate').onclick = () => {
+  try {
+    const url = offerLink();
+    $('offer-url').value = url;
+    $('offer-open').href = url;
+    $('offer-result').hidden = false;
+    offerMessage('Link pronto. Abra e teste antes de divulgar.');
+  } catch (e) {
+    offerMessage(e.message);
+  }
+};
+
+for (const id of ['affiliate','name','price','call']) {
+  $(id).addEventListener('input', () => {
+    $('offer-result').hidden = true;
+    offerMessage('');
+  });
+}
+
+$('offer-copy').onclick = () => {
+  copyText($('offer-url').value, offerMessage);
+};
+
+$('offer-share').onclick = async () => {
+  const url = $('offer-url').value;
+  if (!url) return;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: $('name').value.trim(),
+        text: 'Publicidade • Confira esta oferta',
+        url
+      });
+      offerMessage('Compartilhamento aberto.');
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        await copyText(url, offerMessage);
+      }
+    }
+  } else {
+    await copyText(url, offerMessage);
+  }
+};
+
+$('copy').onclick = async () => {
+  try {
+    const data = affiliateData();
+    const text = [
+      'Publicidade • Link de afiliado',
+      data.name,
+      data.price,
+      data.call,
+      $('channel').value === 'whatsapp'
+        ? offerLink()
+        : 'Confira no link do meu perfil.'
+    ].filter(Boolean).join('\n');
+
+    await copyText(text, message);
+  } catch (e) {
+    message(e.message);
+  }
+};
+
+$('video-share').onclick = async () => {
+  if (!videoBlob) return;
+
+  const file = new File(
+    [videoBlob],
+    'bil-autotik-video.mp4',
+    {type: videoBlob.type}
+  );
+
+  if (!navigator.canShare || !navigator.canShare({files:[file]})) {
+    message('Use Baixar vídeo e selecione o arquivo no Instagram ou WhatsApp.');
+    return;
+  }
+
+  try {
+    await navigator.share({files:[file]});
+    message('Compartilhamento aberto. Envie também a legenda e o link.');
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      message('Não foi possível compartilhar. Use Baixar vídeo.');
+    }
+  }
+};
+
+function showOffer() {
+  if (!location.hash.startsWith('#oferta=')) {
+    $('editor').hidden = false;
+    $('buyer').hidden = true;
+    $('bad-offer').hidden = true;
+    document.title = 'BIL AUTOTIK';
+    return;
+  }
+
+  $('editor').hidden = true;
+  $('buyer').hidden = true;
+  $('bad-offer').hidden = true;
+
+  try {
+    if (location.hash.length > 20000) throw Error();
+
+    const d = JSON.parse(
+      decodeURIComponent(location.hash.slice(8))
+    );
+
+    if (
+      !d ||
+      d.v !== 1 ||
+      typeof d.url !== 'string' ||
+      !valid(d.url) ||
+      typeof d.name !== 'string' ||
+      !d.name.trim() ||
+      d.name.length > 120 ||
+      typeof d.price !== 'string' ||
+      d.price.length > 28 ||
+      typeof d.call !== 'string' ||
+      d.call.length > 100
+    ) throw Error();
+
+    $('offer-name').textContent = d.name;
+    $('offer-price').textContent = d.price;
+    $('offer-call').textContent = d.call;
+    $('offer-destination').textContent = d.url;
+    $('buy').href = d.url;
+    $('buyer').hidden = false;
+    document.title = d.name + ' • BIL AUTOTIK';
+  } catch {
+    $('bad-offer').hidden = false;
+    document.title = 'Oferta indisponível • BIL AUTOTIK';
+  }
+}
+
+window.addEventListener('hashchange', showOffer);
+
+$('generate').onclick = () => {
+  if (recording) return;
+
+  if (!valid($('affiliate').value.trim())) {
+    message('Cole um link válido começando com https://.');
+    return;
+  }
+
+  if (!$('name').value.trim()) {
+    message('Digite o nome do produto.');
+    return;
+  }
+
+  if (!image) {
+    message('Adicione uma foto do produto.');
+    return;
+  }
+
+  if (!window.MediaRecorder || !c.captureStream) {
+    message('Seu navegador não suporta gravação. Tente no Chrome atualizado.');
+    return;
+  }
+
+  const mime = [
+    'video/mp4;codecs=avc1.42E01E',
+    'video/mp4;codecs=avc1.42001E',
+    'video/mp4;codecs=avc1.4D401F',
+    'video/mp4;codecs=avc1.640028'
+  ].find(t => MediaRecorder.isTypeSupported(t));
+
+  if (!mime) {
+    message('Este navegador não oferece MP4 H.264 para gravação. Abra no Chrome atualizado e tente novamente.');
+    return;
+  }
+
+  let stream;
+  let rec;
+  let timer;
+  let timeout;
+  let chunks = [];
+  let failed = false;
+  let cleaned = false;
+
+  const stopTracks = () => {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+  };
+
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    clearInterval(timer);
+    clearTimeout(timeout);
+    document.removeEventListener('visibilitychange', onHidden);
+    stopTracks();
+    lock(false);
+    draw();
+  };
+
+  const fail = () => {
+    if (failed) return;
+    failed = true;
+
+    if (rec && rec.state !== 'inactive') {
+      try { rec.stop(); } catch {}
+    }
+
+    cleanup();
+    message('Gravação interrompida. Mantenha a página aberta e tente novamente.');
+  };
+
+  const onHidden = () => {
+    if (document.hidden) fail();
+  };
+
+  try {
+    draw();
+    stream = c.captureStream(30);
+    rec = new MediaRecorder(stream, {
+      mimeType: mime,
+      videoBitsPerSecond: 3000000
+    });
+
+    rec.ondataavailable = e => {
+      if (e.data.size) chunks.push(e.data);
+    };
+
+    rec.onerror = fail;
+
+    rec.onstop = () => {
+      cleanup();
+      if (failed) return;
+
+      const blob = new Blob(chunks, {type:rec.mimeType || mime});
+      videoBlob = blob;
+
+      if (!blob.size) {
+        message('O vídeo ficou vazio. Tente gerar novamente.');
+        return;
+      }
+
+      if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+      downloadUrl = URL.createObjectURL(blob);
+
+      $('dl').href = downloadUrl;
+      $('dl').download = 'bil-autotik-video.' +
+        (blob.type.includes('mp4') ? 'mp4' : 'webm');
+      $('dl').style.display = 'inline-block';
+
+      $('video-result').src = downloadUrl;
+      $('video-result').hidden = false;
+      $('video-share').hidden = false;
+
+      message('Vídeo pronto! Toque em Baixar vídeo. Copie a legenda e o link para divulgar.');
+    };
+
+    lock(true);
+    videoBlob = null;
+    $('video-result').pause();
+    $('video-result').removeAttribute('src');
+    $('video-result').hidden = true;
+    $('video-share').hidden = true;
+    $('dl').style.display = 'none';
+
+    message('Gerando vídeo de 8 segundos. Mantenha esta página aberta...');
+
+    document.addEventListener('visibilitychange', onHidden);
+
+    const began = performance.now();
+    rec.start();
+
+    timer = setInterval(() => {
+      draw();
+      const elapsed = (performance.now() - began) / 1000;
+
+      x.fillStyle = '#32dce7';
+      x.fillRect(48,1210,624*Math.min(1,elapsed/8),5);
+
+      if (elapsed >= 8 && rec.state === 'recording') {
+        clearInterval(timer);
+        rec.stop();
+      }
+    }, 1000/30);
+
+    timeout = setTimeout(() => {
+      if (recording) fail();
+    }, 15000);
+  } catch {
+    fail();
+  }
+};
+
+channelHelp();
+showOffer();
+draw();
+</script>
+</body>
+</html>
