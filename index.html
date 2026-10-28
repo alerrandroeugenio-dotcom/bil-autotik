@@ -31,6 +31,9 @@ canvas{width:100%;height:auto;border-radius:14px;margin-top:12px}
 video{width:100%;max-height:500px;margin-top:14px;border-radius:14px}
 .offer-price{font-size:30px;color:#32dce7}
 .version{font-size:12px;color:#aeb2c8}
+.offer-card{border-top:1px solid #34344e;padding:18px 0}
+.offer-card h3{margin:0;overflow-wrap:anywhere}
+.offer-card .row{margin-top:10px}
 [hidden]{display:none!important}
 @media(max-width:500px){.row{grid-template-columns:1fr}}
 </style>
@@ -52,14 +55,37 @@ video{width:100%;max-height:500px;margin-top:14px;border-radius:14px}
 
 <section id="bad-offer" class="panel" hidden>
   <h1>Não foi possível abrir esta oferta</h1>
-  <p>Peça ao divulgador para gerar e enviar o link completo novamente.</p>
+  <p id="bad-offer-message">Peça ao divulgador para conferir o link da oferta.</p>
+  <button type="button" id="offer-retry">Tentar novamente</button>
 </section>
+
+<section id="offer-loading" class="panel" hidden role="status">Carregando oferta...</section>
 
 <div id="editor">
   <h1>BIL AUTOTIK</h1>
   <div class="pill">CENTRAL DE PRODUTOS</div>
   <div class="lead">Prepare seu vídeo.<br><span class="cyan">Compartilhe sua oferta.</span></div>
   <p class="muted">Monte um vídeo vertical de divulgação para TikTok, Reels e Shorts.</p>
+
+  <section class="panel" aria-labelledby="account-title">
+    <h2 id="account-title">Suas ofertas salvas</h2>
+    <p id="account-status" class="status" role="status" aria-live="polite"></p>
+    <form id="login-form" hidden>
+      <label for="login-email">E-mail</label>
+      <input id="login-email" type="email" autocomplete="username" required>
+      <label for="login-password">Senha</label>
+      <input id="login-password" type="password" autocomplete="current-password" required>
+      <button id="login-button" type="submit">Entrar</button>
+    </form>
+    <div id="account-actions" hidden>
+      <button type="button" id="logout" class="secondary">Sair da conta</button>
+      <h2>Minhas ofertas</h2>
+      <p class="small">Reabra os textos para editar e salve mantendo o mesmo link. Fotos e vídeos não ficam salvos.</p>
+      <button type="button" id="offers-refresh" class="secondary">Atualizar lista</button>
+      <p id="list-status" class="status" role="status" aria-live="polite"></p>
+      <div id="offers-list"></div>
+    </div>
+  </section>
 
   <section class="panel">
     <h2>Gerador de vídeo de afiliado</h2>
@@ -93,6 +119,10 @@ video{width:100%;max-height:500px;margin-top:14px;border-radius:14px}
     <section class="panel">
       <h2>Link público da oferta</h2>
       <p class="small">Crie uma página com nome, preço e botão para sua loja. Ela abre em outro celular, sem entrar no Bil. A foto escolhida abaixo é usada no vídeo.</p>
+
+      <p id="offer-mode-help" class="small"></p>
+      <p id="editing-status" class="small">Nova oferta</p>
+      <button type="button" id="new-offer" class="secondary">Começar outra oferta</button>
 
       <button type="button" id="offer-generate">Gerar link da oferta</button>
 
@@ -135,12 +165,17 @@ video{width:100%;max-height:500px;margin-top:14px;border-radius:14px}
     <textarea id="manual-copy" readonly></textarea>
   </section>
 
-  <p class="version">BIL AUTOTIK • versão 2.1 • Ofertas públicas</p>
+  <p class="version">BIL AUTOTIK • versão 2.2 • Ofertas salvas</p>
 </div>
 
 </main>
 
-<script>
+<script type="module">
+import {
+  CONFIGURED, validUrl, validateOffer, publicLink,
+  currentUser, signIn, signOut, saveOffer, loadOffer, listOffers, setActive
+} from './ofertas.js';
+
 const $ = id => document.getElementById(id);
 const c = $('cv');
 const x = c.getContext('2d');
@@ -149,20 +184,19 @@ let recording = false;
 let downloadUrl = null;
 let photoUrl = null;
 let videoBlob = null;
+let saving = false;
+let savedId = null;
+let pendingId = null;
+let savedSignature = null;
+let savePromise = null;
+let accountGeneration = 0;
+let listGeneration = 0;
+let routeGeneration = 0;
 
 const fields = ['affiliate','name','price','call','photo','channel'];
 
 function valid(u) {
-  try {
-    const a = new URL(u);
-    return a.protocol === 'https:' &&
-      !a.username &&
-      !a.password &&
-      a.hostname.includes('.') &&
-      u.length <= 3000;
-  } catch {
-    return false;
-  }
+  return validUrl(u);
 }
 
 function lines(t, max) {
@@ -247,9 +281,16 @@ function draw() {
 
 function lock(on) {
   recording = on;
-  fields.forEach(id => $(id).disabled = on);
-  $('generate').disabled = on;
-  $('preview').disabled = on;
+  updateLocks();
+}
+
+function updateLocks() {
+  const busy = recording || saving;
+  fields.forEach(id => $(id).disabled = busy);
+  for (const id of ['generate','preview','offer-generate','copy','new-offer','logout','offers-refresh']) {
+    $(id).disabled = busy;
+  }
+  document.querySelectorAll('#offers-list button').forEach(button => button.disabled = busy);
 }
 
 function message(t) {
@@ -318,18 +359,42 @@ function affiliateData() {
     throw Error('Digite o nome do produto.');
   }
 
-  return {
+  return validateOffer({
     v: 1,
     url,
     name,
     price: $('price').value.trim(),
     call: $('call').value.trim()
-  };
+  });
 }
 
-function offerLink() {
-  return location.origin + location.pathname +
-    '#oferta=' + encodeURIComponent(JSON.stringify(affiliateData()));
+async function offerLink() {
+  if (savePromise) return savePromise;
+  const d = affiliateData();
+  if (!CONFIGURED) {
+    return location.origin + location.pathname +
+      '#oferta=' + encodeURIComponent(JSON.stringify(d));
+  }
+  const signature = JSON.stringify(d);
+  if (savedId && signature === savedSignature) return publicLink(savedId);
+  pendingId ||= savedId || crypto.randomUUID();
+  saving = true;
+  updateLocks();
+  savePromise = (async () => {
+    await saveOffer(pendingId, d);
+    savedId = pendingId;
+    savedSignature = signature;
+    $('editing-status').textContent = 'Editando oferta salva — salvar mantém o mesmo link.';
+    void refreshOffers();
+    return publicLink(savedId);
+  })();
+  try {
+    return await savePromise;
+  } finally {
+    saving = false;
+    savePromise = null;
+    updateLocks();
+  }
 }
 
 async function copyText(t, feedback) {
@@ -357,13 +422,16 @@ function channelHelp() {
 
 $('channel').onchange = channelHelp;
 
-$('offer-generate').onclick = () => {
+$('offer-generate').onclick = async () => {
   try {
-    const url = offerLink();
+    offerMessage(CONFIGURED ? 'Salvando oferta...' : 'Gerando link...');
+    const url = await offerLink();
     $('offer-url').value = url;
     $('offer-open').href = url;
     $('offer-result').hidden = false;
-    offerMessage('Link pronto. Abra e teste antes de divulgar.');
+    offerMessage(CONFIGURED
+      ? 'Oferta salva. Abra e teste antes de divulgar.'
+      : 'Link completo pronto. Esta oferta não fica salva em uma lista.');
   } catch (e) {
     offerMessage(e.message);
   }
@@ -411,7 +479,7 @@ $('copy').onclick = async () => {
       data.price,
       data.call,
       $('channel').value === 'whatsapp'
-        ? offerLink()
+        ? await offerLink()
         : 'Confira no link do meu perfil.'
     ].filter(Boolean).join('\n');
 
@@ -445,39 +513,36 @@ $('video-share').onclick = async () => {
   }
 };
 
-function showOffer() {
-  if (!location.hash.startsWith('#oferta=')) {
+async function showOffer() {
+  const generation = ++routeGeneration;
+  const params = new URLSearchParams(location.search);
+  const hasId = params.has('oferta');
+  const legacy = location.hash.startsWith('#oferta=');
+  $('offer-loading').hidden = true;
+  if (!hasId && !legacy) {
     $('editor').hidden = false;
     $('buyer').hidden = true;
     $('bad-offer').hidden = true;
     document.title = 'BIL AUTOTIK';
+    if (CONFIGURED) void refreshAccount();
     return;
   }
 
   $('editor').hidden = true;
   $('buyer').hidden = true;
   $('bad-offer').hidden = true;
+  $('buy').removeAttribute('href');
+  $('offer-loading').hidden = false;
 
   try {
-    if (location.hash.length > 20000) throw Error();
-
-    const d = JSON.parse(
-      decodeURIComponent(location.hash.slice(8))
-    );
-
-    if (
-      !d ||
-      d.v !== 1 ||
-      typeof d.url !== 'string' ||
-      !valid(d.url) ||
-      typeof d.name !== 'string' ||
-      !d.name.trim() ||
-      d.name.length > 120 ||
-      typeof d.price !== 'string' ||
-      d.price.length > 28 ||
-      typeof d.call !== 'string' ||
-      d.call.length > 100
-    ) throw Error();
+    let d;
+    if (hasId) {
+      d = await loadOffer(params.get('oferta'));
+    } else {
+      if (location.hash.length > 20000) throw Error('O link da oferta é inválido.');
+      d = validateOffer(JSON.parse(decodeURIComponent(location.hash.slice(8))));
+    }
+    if (generation !== routeGeneration) return;
 
     $('offer-name').textContent = d.name;
     $('offer-price').textContent = d.price;
@@ -486,13 +551,192 @@ function showOffer() {
     $('buy').href = d.url;
     $('buyer').hidden = false;
     document.title = d.name + ' • BIL AUTOTIK';
-  } catch {
+  } catch (e) {
+    if (generation !== routeGeneration) return;
     $('bad-offer').hidden = false;
+    $('bad-offer-message').textContent = hasId ? e.message : 'Peça ao divulgador para reenviar o link completo.';
     document.title = 'Oferta indisponível • BIL AUTOTIK';
+  } finally {
+    if (generation === routeGeneration) $('offer-loading').hidden = true;
   }
 }
 
 window.addEventListener('hashchange', showOffer);
+window.addEventListener('popstate', showOffer);
+$('offer-retry').onclick = showOffer;
+
+function clearMedia() {
+  image = null;
+  $('photo').value = '';
+  videoBlob = null;
+  $('video-result').pause();
+  $('video-result').removeAttribute('src');
+  $('video-result').hidden = true;
+  $('video-share').hidden = true;
+  $('dl').style.display = 'none';
+  if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+  downloadUrl = null;
+}
+
+function resetOffer() {
+  savedId = pendingId = savedSignature = null;
+  $('offer-result').hidden = true;
+  $('offer-url').value = '';
+  $('offer-open').removeAttribute('href');
+  $('editing-status').textContent = 'Nova oferta';
+  $('offer-generate').textContent = CONFIGURED ? 'Salvar e gerar link da oferta' : 'Gerar link da oferta';
+  offerMessage('');
+}
+
+$('new-offer').onclick = () => {
+  if (recording || saving) return;
+  resetOffer();
+  for (const id of ['affiliate','name','price']) $(id).value = '';
+  $('call').value = 'Confira essa oferta!';
+  clearMedia();
+  draw();
+  message('Preencha os dados da nova oferta.');
+  $('name').focus();
+};
+
+function editOffer(offer) {
+  if (recording || saving) return;
+  resetOffer();
+  clearMedia();
+  savedId = pendingId = offer.id;
+  // Exige um salvamento explícito também para reativar uma oferta inativa.
+  for (const [field, key] of [['affiliate','url'],['name','name'],['price','price'],['call','call']]) {
+    $(field).value = offer[key];
+  }
+  $('editing-status').textContent = offer.active
+    ? 'Editando oferta salva — salvar mantém o mesmo link.'
+    : 'Oferta desativada — salvar publica novamente com o mesmo link.';
+  $('offer-generate').textContent = 'Salvar alterações e gerar link';
+  draw();
+  message('Textos recuperados. Escolha novamente a foto se quiser gerar outro vídeo.');
+  $('name').focus();
+}
+
+async function refreshOffers() {
+  const generation = ++listGeneration;
+  $('list-status').textContent = 'Carregando suas ofertas...';
+  try {
+    const offers = await listOffers();
+    if (generation !== listGeneration) return;
+    $('offers-list').replaceChildren();
+    for (const offer of offers) {
+      const card = document.createElement('article');
+      card.className = 'offer-card';
+      const title = document.createElement('h3');
+      title.textContent = offer.name;
+      const detail = document.createElement('p');
+      detail.className = 'small';
+      detail.textContent = [offer.active ? 'Ativa' : 'Desativada', offer.price,
+        new Date(offer.created_at).toLocaleDateString('pt-BR')].filter(Boolean).join(' • ');
+      const open = document.createElement('a');
+      open.className = 'download';
+      open.textContent = 'Abrir oferta';
+      open.href = publicLink(offer.id);
+      open.target = '_blank';
+      open.rel = 'noopener';
+      const actions = document.createElement('div');
+      actions.className = 'row';
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.textContent = 'Editar oferta';
+      edit.onclick = () => editOffer(offer);
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'secondary';
+      toggle.textContent = offer.active ? 'Desativar oferta' : 'Reativar oferta';
+      toggle.onclick = async () => {
+        if (recording || saving) return;
+        saving = true;
+        updateLocks();
+        try {
+          await setActive(offer.id, !offer.active);
+          if (savedId === offer.id) {
+            savedSignature = null;
+            $('offer-result').hidden = true;
+            $('editing-status').textContent = offer.active
+              ? 'Oferta desativada — salvar publica novamente com o mesmo link.'
+              : 'Editando oferta salva — salvar mantém o mesmo link.';
+          }
+          await refreshOffers();
+        } catch (e) {
+          $('list-status').textContent = e.message;
+        } finally {
+          saving = false;
+          updateLocks();
+        }
+      };
+      const copy = document.createElement('button');
+      copy.type = 'button';
+      copy.className = 'secondary';
+      copy.textContent = 'Copiar link';
+      copy.onclick = () => copyText(publicLink(offer.id), t => $('list-status').textContent = t);
+      actions.append(edit, toggle);
+      card.append(title, detail, open, actions, copy);
+      $('offers-list').append(card);
+    }
+    $('list-status').textContent = offers.length ? '' : 'Você ainda não tem ofertas salvas.';
+    updateLocks();
+  } catch (e) {
+    if (generation !== listGeneration) return;
+    $('offers-list').replaceChildren();
+    $('list-status').textContent = e.message;
+  }
+}
+
+async function refreshAccount() {
+  const generation = ++accountGeneration;
+  try {
+    const user = await currentUser();
+    if (generation !== accountGeneration) return;
+    $('login-form').hidden = Boolean(user);
+    $('account-actions').hidden = !user;
+    $('account-status').textContent = user ? 'Conectado: ' + user.email : 'Entre para salvar e recuperar suas ofertas.';
+    if (user) await refreshOffers();
+  } catch (e) {
+    if (generation !== accountGeneration) return;
+    $('login-form').hidden = false;
+    $('account-actions').hidden = true;
+    $('account-status').textContent = e.message;
+  }
+}
+
+$('login-form').onsubmit = async e => {
+  e.preventDefault();
+  $('login-button').disabled = true;
+  $('account-status').textContent = 'Entrando...';
+  try {
+    await signIn($('login-email').value.trim(), $('login-password').value);
+    resetOffer();
+    await refreshAccount();
+  } catch (error) {
+    $('account-status').textContent = error.message;
+  } finally {
+    $('login-password').value = '';
+    $('login-button').disabled = false;
+  }
+};
+
+$('logout').onclick = async () => {
+  if (recording || saving) return;
+  $('logout').disabled = true;
+  try {
+    await signOut();
+    ++listGeneration;
+    $('offers-list').replaceChildren();
+    resetOffer();
+    await refreshAccount();
+  } catch (e) {
+    $('account-status').textContent = e.message;
+  } finally {
+    updateLocks();
+  }
+};
+$('offers-refresh').onclick = refreshOffers;
 
 $('generate').onclick = () => {
   if (recording) return;
@@ -648,6 +892,14 @@ $('generate').onclick = () => {
 channelHelp();
 showOffer();
 draw();
+resetOffer();
+if (CONFIGURED) {
+  $('offer-mode-help').textContent = 'Salve sua oferta para obter um link fixo. Ao editar e salvar, esse mesmo link passa a mostrar os novos dados.';
+} else {
+  $('account-status').textContent = 'Ofertas salvas ainda não ativadas. O gerador de vídeo e os links completos continuam disponíveis.';
+  $('offer-mode-help').textContent = 'Modo atual: link completo, sem histórico. A gravação e o compartilhamento de vídeo continuam disponíveis.';
+}
 </script>
 </body>
 </html>
+
